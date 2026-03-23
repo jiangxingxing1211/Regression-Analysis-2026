@@ -64,7 +64,7 @@ git clone <fork_repo_addr>
 
 cd <repo_name>
 
-git add upstream git@github.com:rex-ouc/Regression-Analysis-2026.git
+git remote add upstream git@github.com:rex-ouc/Regression-Analysis-2026.git
 
 git remote -v # 查看是否增加了 upstream repo
 
