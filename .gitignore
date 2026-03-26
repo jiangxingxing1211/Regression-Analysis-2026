@@ -1,7 +1,12 @@
 .DS_Store
 *.pdf
 
+# 补充虚拟环境的常见命名
 **/.venv/
+**/venv/
+**/env/
+**/.env/
+
 **/__pycache__/
 **/.ipynb_checkpoints/
 **/uv.lock
