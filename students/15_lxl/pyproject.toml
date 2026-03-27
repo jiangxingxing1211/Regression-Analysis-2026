@@ -1,0 +1,21 @@
+[project]
+name = "template"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "matplotlib>=3.10.8",
+    "numpy>=2.4.3",
+    "scikit-learn>=1.8.0",
+    "statsmodels>=0.14.6",
+]
+
+
+[tool.ruff]
+line-length=100
+
+[tool.ruff.lint]
+# 选择要检查的规则：E(错误), F(致命规范), I(Import排序)
+select=["E","F","I"]
+
