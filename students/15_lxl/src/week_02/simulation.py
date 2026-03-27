@@ -8,7 +8,7 @@ import pandas as pd
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 from sklearn.linear_model import LinearRegression
-import matplotlib.pyplot as plt
+
 
 # ==========================================
 # 1. Generate Data
@@ -101,8 +101,5 @@ def analysis(df):
 
     print("\n### 回归总结")
     print(model.summary())
-    plt.hist(df["manual_beta1"], bins=20)
-    plt.axvline(2, color="red")
-    plt.title("Distribution of beta1_hat")
-    plt.savefig("beta1_dist.png")
+   
     
