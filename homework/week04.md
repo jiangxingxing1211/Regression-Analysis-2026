@@ -1,4 +1,4 @@
-# Week A Assignment: The Tale of Two Solvers (求解器双城记)
+# Week 04 Assignment: The Tale of Two Solvers (求解器双城记)
 
 ## 🎯 实验背景 (Background)
 在理论课上，我们推导了多元线性回归的全局最优解析解：$\hat{\beta} = (X^T X)^{-1} X^T Y$。在数学上，它是完美的。
