@@ -1,0 +1,21 @@
+# 忽略结果文件夹
+results/
+*.png
+*.jpg
+*.jpeg
+
+# 忽略数据文件夹
+data/
+*.csv
+*.xlsx
+*.xls
+
+# 忽略 Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 忽略 IDE 配置
+.vscode/
+.idea/
+*.swp

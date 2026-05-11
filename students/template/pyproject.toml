@@ -5,7 +5,11 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "matplotlib>=3.10.9",
+    "numpy>=2.4.4",
     "pandas>=3.0.2",
+    "scikit-learn>=1.8.0",
+    "scipy>=1.17.1",
 ]
 
 
@@ -15,4 +19,9 @@ line-length=100
 [tool.ruff.lint]
 # 选择要检查的规则：E(错误), F(致命规范), I(Import排序)
 select=["E","F","I"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
 

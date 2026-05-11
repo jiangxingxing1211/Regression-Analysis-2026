@@ -1,0 +1,7 @@
+# 不提交结果和数据文件
+results/
+data/
+
+# Python 缓存文件
+__pycache__/
+*.pyc

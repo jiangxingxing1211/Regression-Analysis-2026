@@ -1,0 +1,20 @@
+# uv lock file (not needed for others)
+uv.lock
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv/
+venv/
+
+# Generated results (optional, but you can keep them if you want to show)
+results/
+
+# Ruff cache
+.ruff_cache/
+
+# IDE files
+.vscode/
+.idea/

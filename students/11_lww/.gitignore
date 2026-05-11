@@ -1,0 +1,33 @@
+# 自动生成的结果/临时文件
+results/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# 数据文件（不提交csv）
+data/
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# IDE/编辑器配置
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 包管理锁文件
+uv.lock
+poetry.lock
+Pipfile.lock
+
+# 其他临时文件
+*.log
+*.md~
+.python-version
+pythom-version
+simulation.py
+week -02.md
