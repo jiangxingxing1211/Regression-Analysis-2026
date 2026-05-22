@@ -7,8 +7,8 @@ class AnalyticalOLS:
         self.coef_ = None
 
     def fit(self, X, y):
-        X = np.array(X)
-        y = np.array(y)
+        X = np.array(X, dtype=np.float64)
+        y = np.array(y, dtype=np.float64)
         self.coef_ = np.linalg.inv(X.T @ X) @ X.T @ y
         return self
 
@@ -40,36 +40,30 @@ class GradientDescentOLS:
         self.loss_history_ = []
 
     def fit(self, X, y, seed=42):
-        np.random.seed(seed)
+        X = np.array(X, dtype=np.float64)
+        y = np.array(y, dtype=np.float64)
         n_samples, n_features = X.shape
         self.coef_ = np.zeros(n_features)
         self.loss_history_ = []
+        rng = np.random.default_rng(seed)
 
-        for i in range(self.max_iter):
-            # 批量选择
+        for epoch in range(self.max_iter):
             if self.gd_type == "mini_batch":
-                batch_size = int(n_samples * self.batch_fraction)
-                idx = np.random.choice(n_samples, batch_size, replace=False)
-                X_batch = X[idx]
-                y_batch = y[idx]
+                batch_size = max(1, int(n_samples * self.batch_fraction))
+                idx = rng.choice(n_samples, batch_size, replace=False)
+                Xb, yb = X[idx], y[idx]
             else:
-                X_batch = X
-                y_batch = y
+                Xb, yb = X, y
 
-            # 梯度计算
-            y_pred = X_batch @ self.coef_
-            error = y_pred - y_batch
-            grad = (2 / len(X_batch)) * (X_batch.T @ error)
-
-            # 更新参数
+            y_pred = Xb @ self.coef_
+            error = y_pred - yb
+            grad = (2 / len(Xb)) * (Xb.T @ error)
             self.coef_ -= self.learning_rate * grad
 
-            # 损失记录
             mse = np.mean((X @ self.coef_ - y) ** 2)
             self.loss_history_.append(mse)
 
-            # 收敛停止
-            if i > 0 and abs(self.loss_history_[-1] - self.loss_history_[-2]) < self.tol:
+            if epoch > 0 and abs(self.loss_history_[-1] - self.loss_history_[-2]) < self.tol:
                 break
         return self
 
@@ -80,4 +74,4 @@ class GradientDescentOLS:
         y_pred = self.predict(X)
         ss_res = np.sum((y - y_pred) ** 2)
         ss_tot = np.sum((y - np.mean(y)) ** 2)
-        return 1 - (ss_res / ss_tot)
+        return 1 - (ss_res / ss_tot) if ss_tot != 0 else 0

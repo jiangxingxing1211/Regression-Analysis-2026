@@ -1,13 +1,19 @@
 """
 Module: week07.main
 Purpose: Cross-validation, tuning, and generalization analysis.
+
+本模块实现了以下功能：
+1. AnalyticalOLS 和 GradientDescentOLS 模型的交叉验证
+2. 梯度下降模型的超参数（学习率）寻优
+3. Full-batch 和 Mini-batch 梯度下降的学习曲线对比
+4. 特征标准化与数据泄露防护
 """
 import os
 from pathlib import Path
 import sys
 
 import matplotlib
-matplotlib.use('Agg')  # 使用非交互式后端，避免显示问题
+matplotlib.use('Agg')  # 使用非交互式后端，避免在无图形界面环境下报错
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -15,34 +21,60 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import KFold, train_test_split
 from sklearn.preprocessing import StandardScaler
 
-# 添加路径
+# 添加路径，使 Python 能够找到 utils 模块
 sys.path.append(str(Path(__file__).parent.parent))
 from utils.models import AnalyticalOLS, GradientDescentOLS
 
 
 def rmse(y_true, y_pred):
-    """计算 RMSE"""
+    """
+    计算均方根误差 (Root Mean Square Error)
+    
+    参数:
+        y_true: 真实值
+        y_pred: 预测值
+    
+    返回:
+        RMSE 值
+    """
     return np.sqrt(mean_squared_error(y_true, y_pred))
 
 
 def task_cross_validation(X, y):
-    """Task 2: 对 AnalyticalOLS 进行 5 折交叉验证"""
+    """
+    Task 2: 对 AnalyticalOLS 进行 5 折交叉验证
+    
+    目的：评估解析解模型在真实数据上的泛化能力
+    
+    参数:
+        X: 特征矩阵（已包含截距列）
+        y: 目标变量
+    
+    返回:
+        cv_r2: 平均 R² 分数
+        cv_rmse: 平均 RMSE 值
+    """
     print("\n" + "="*60)
     print("Task 2: 5-Fold Cross-Validation on AnalyticalOLS")
     print("="*60)
     
+    # 创建 5 折交叉验证器，打乱数据并固定随机种子以确保可复现
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
     
-    r2_scores = []
-    rmse_scores = []
+    r2_scores = []   # 存储每折的 R² 分数
+    rmse_scores = [] # 存储每折的 RMSE 值
 
+    # 遍历每一折
     for fold, (train_idx, val_idx) in enumerate(kf.split(X), start=1):
+        # 划分训练集和验证集
         X_train, X_val = X[train_idx], X[val_idx]
         y_train, y_val = y[train_idx], y[val_idx]
 
+        # 训练模型并预测
         model = AnalyticalOLS().fit(X_train, y_train)
         preds = model.predict(X_val)
 
+        # 计算评估指标
         fold_r2 = r2_score(y_val, preds)
         fold_rmse = rmse(y_val, preds)
 
@@ -51,6 +83,7 @@ def task_cross_validation(X, y):
 
         print(f"Fold {fold}: R²={fold_r2:.4f}, RMSE={fold_rmse:.4f}")
 
+    # 输出平均结果和标准差
     print(f"\nAverage CV R²:  {np.mean(r2_scores):.4f} (±{np.std(r2_scores):.4f})")
     print(f"Average CV RMSE: {np.mean(rmse_scores):.4f} (±{np.std(rmse_scores):.4f})")
     
@@ -58,39 +91,56 @@ def task_cross_validation(X, y):
 
 
 def task_hyperparameter_tuning(X_train, y_train, X_val, y_val, results_dir):
-    """Task 3: 超参数寻优，找出最佳学习率"""
+    """
+    Task 3: 超参数寻优，找出最佳学习率
+    
+    目的：在验证集上评估不同学习率，选择表现最好的
+    
+    参数:
+        X_train, y_train: 训练集
+        X_val, y_val: 验证集
+        results_dir: 结果保存目录
+    
+    返回:
+        best_lr: 最佳学习率
+    """
     print("\n" + "="*60)
     print("Task 3: Hyperparameter Tuning for Gradient Descent")
     print("="*60)
     
+    # 定义待测试的学习率列表
     learning_rates = [0.1, 0.01, 0.001, 0.0001, 1e-5]
-    results = []
-    best_lr = None
-    best_score = -np.inf
+    results = []      # 存储每个学习率的评估结果
+    best_lr = None    # 最佳学习率
+    best_score = -np.inf  # 最佳 R² 分数（初始为负无穷）
 
+    # 遍历每个学习率
     for lr in learning_rates:
         print(f"\nTraining with learning_rate={lr}...")
         
         try:
+            # 训练梯度下降模型
             model = GradientDescentOLS(
                 learning_rate=lr,
-                tol=1e-5,
-                max_iter=1000,
-                gd_type="mini_batch",
-                batch_fraction=0.2,
+                tol=1e-5,           # 收敛阈值
+                max_iter=1000,      # 最大迭代次数
+                gd_type="mini_batch",   # 使用 mini-batch 梯度下降
+                batch_fraction=0.2,     # batch 大小为 20%
             ).fit(X_train, y_train, seed=42)
 
+            # 在验证集上评估
             val_preds = model.predict(X_val)
             val_r2 = r2_score(y_val, val_preds)
             val_rmse = rmse(y_val, val_preds)
             
             # 记录训练信息
-            converged_epochs = len(model.loss_history_)
-            final_loss = model.loss_history_[-1]
+            converged_epochs = len(model.loss_history_)  # 实际迭代次数
+            final_loss = model.loss_history_[-1]         # 最终 loss 值
 
             print(f"  → Validation R²={val_r2:.4f}, RMSE={val_rmse:.4f}")
             print(f"  → Converged after {converged_epochs} epochs, final loss={final_loss:.6f}")
             
+            # 保存结果
             results.append({
                 'lr': lr,
                 'val_r2': val_r2,
@@ -99,11 +149,13 @@ def task_hyperparameter_tuning(X_train, y_train, X_val, y_val, results_dir):
                 'final_loss': final_loss
             })
 
+            # 更新最佳学习率
             if val_r2 > best_score:
                 best_score = val_r2
                 best_lr = lr
                 
         except Exception as e:
+            # 如果训练失败（如学习率过大导致发散），记录失败信息
             print(f"  → ❌ Failed: {str(e)}")
             results.append({
                 'lr': lr,
@@ -120,13 +172,14 @@ def task_hyperparameter_tuning(X_train, y_train, X_val, y_val, results_dir):
     results_df = pd.DataFrame(results)
     print(results_df.to_string(index=False))
     
+    # 处理没有有效学习率的情况
     if best_lr is not None:
         print(f"\n✅ Selected best learning rate: {best_lr} (Validation R²={best_score:.4f})")
     else:
         print("\n❌ No valid learning rate found! Using default lr=0.01")
         best_lr = 0.01
         
-    # 保存结果 - 使用绝对路径确保保存成功
+    # 保存调优结果到 CSV 文件
     save_path = results_dir / "hyperparameter_tuning.csv"
     results_df.to_csv(save_path, index=False)
     print(f"  💾 Saved to: {save_path.absolute()}")
@@ -135,36 +188,46 @@ def task_hyperparameter_tuning(X_train, y_train, X_val, y_val, results_dir):
 
 
 def task_plot_learning_curve(X_train, y_train, results_dir: Path):
-    """Task 4: 绘制 Full Batch vs Mini-Batch 的学习曲线"""
+    """
+    Task 4: 绘制 Full Batch vs Mini-Batch 的学习曲线
+    
+    目的：对比两种梯度下降方式的 loss 下降轨迹
+    
+    参数:
+        X_train, y_train: 训练集
+        results_dir: 结果保存目录
+    """
     print("\n" + "="*60)
     print("Task 4: Learning Curve Comparison")
     print("="*60)
     
-    # 使用相同的学习率和最大迭代次数
+    # 固定学习率和最大迭代次数，以便公平对比
     learning_rate = 0.01
     max_iter = 200
     
+    # 训练 Full Batch 梯度下降模型
     print("Training Full Batch GD...")
     model_full = GradientDescentOLS(
         learning_rate=learning_rate,
-        gd_type="full_batch",
+        gd_type="full_batch",      # 使用全批量梯度下降
         max_iter=max_iter,
-        tol=1e-8,
+        tol=1e-8,  # 设置非常小的阈值，以便迭代完整的 max_iter 次
     ).fit(X_train, y_train, seed=42)
     
+    # 训练 Mini-Batch 梯度下降模型
     print("Training Mini-Batch GD...")
     model_mini = GradientDescentOLS(
         learning_rate=learning_rate,
-        gd_type="mini_batch",
-        batch_fraction=0.2,
+        gd_type="mini_batch",      # 使用小批量梯度下降
+        batch_fraction=0.2,        # batch 大小为 20%
         max_iter=max_iter,
         tol=1e-8,
     ).fit(X_train, y_train, seed=42)
     
-    # 绘制学习曲线
+    # 创建图形：1行2列的子图布局
     plt.figure(figsize=(12, 5))
     
-    # 主图
+    # 子图1: 完整的学习曲线（全部200轮）
     plt.subplot(1, 2, 1)
     plt.plot(model_full.loss_history_, label="Full Batch GD", linewidth=2, color="#2E86AB")
     plt.plot(model_mini.loss_history_, label="Mini-Batch GD (batch=20%)", linewidth=2, 
@@ -175,7 +238,7 @@ def task_plot_learning_curve(X_train, y_train, results_dir: Path):
     plt.legend(fontsize=10)
     plt.grid(True, alpha=0.3)
     
-    # 子图：前50轮放大
+    # 子图2: 前50轮的放大图（便于观察初期收敛行为）
     plt.subplot(1, 2, 2)
     plt.plot(model_full.loss_history_[:50], label="Full Batch", linewidth=2, color="#2E86AB")
     plt.plot(model_mini.loss_history_[:50], label="Mini-Batch", linewidth=2, 
@@ -186,12 +249,12 @@ def task_plot_learning_curve(X_train, y_train, results_dir: Path):
     plt.legend(fontsize=10)
     plt.grid(True, alpha=0.3)
     
-    plt.tight_layout()
+    plt.tight_layout()  # 自动调整子图间距
     
-    # 保存图片 - 使用绝对路径
+    # 保存图片
     save_path = results_dir / "learning_curve_full_vs_mini.png"
     plt.savefig(save_path, dpi=150, bbox_inches='tight')
-    plt.close()
+    plt.close()  # 关闭图形，释放内存
     
     print(f"✅ Learning curve saved to: {save_path.absolute()}")
     
@@ -206,8 +269,18 @@ def task_plot_learning_curve(X_train, y_train, results_dir: Path):
 
 
 def generate_report(results_dir, gd_r2, gd_rmse, ols_r2, ols_rmse, best_lr, cv_r2, cv_rmse):
-    """生成 Markdown 报告"""
+    """
+    生成 Markdown 格式的实验报告
     
+    参数:
+        results_dir: 结果保存目录
+        gd_r2, gd_rmse: 梯度下降模型的测试集表现
+        ols_r2, ols_rmse: 解析解模型的测试集表现
+        best_lr: 最佳学习率
+        cv_r2, cv_rmse: 交叉验证的平均结果
+    """
+    
+    # 使用列表存储报告的每一行，避免三引号嵌套问题
     report_lines = []
     report_lines.append("# Week 07 任务总结报告")
     report_lines.append("")
@@ -298,9 +371,10 @@ def generate_report(results_dir, gd_r2, gd_rmse, ols_r2, ols_rmse, best_lr, cv_r
     report_lines.append("---")
     report_lines.append(f"*报告生成时间: {pd.Timestamp.now()}*")
     
+    # 将列表拼接成完整的字符串
     report_content = "\n".join(report_lines)
     
-    # 保存报告 - 使用绝对路径
+    # 保存报告到文件
     save_path = results_dir / "summary_report.md"
     with open(save_path, "w", encoding="utf-8") as f:
         f.write(report_content)
@@ -309,33 +383,49 @@ def generate_report(results_dir, gd_r2, gd_rmse, ols_r2, ols_rmse, best_lr, cv_r
 
 
 def main():
+    """
+    主函数：协调执行所有任务
+    
+    执行流程：
+    1. 设置工作目录和路径
+    2. 加载数据
+    3. Task 2: 5折交叉验证
+    4. 划分训练/验证/测试集（60/20/20）
+    5. 特征标准化（防止数据泄露）
+    6. Task 3: 超参数寻优
+    7. Task 3: 最终测试对比
+    8. Task 4: 绘制学习曲线
+    9. 保存结果和生成报告
+    """
     print("\n" + "="*60)
     print("Week 07 Assignment - Regression Analysis")
     print("="*60)
     
+    # ==================== 环境设置 ====================
     # 获取当前文件所在目录
     current_file = Path(__file__).resolve()
     script_dir = current_file.parent
     print(f"Script directory: {script_dir}")
     
-    # 项目根目录
+    # 项目根目录（向上4级）
     project_root = script_dir.parent.parent.parent.parent
     print(f"Project root: {project_root}")
     
-    # 切换到脚本目录（确保相对路径正确）
+    # 切换到脚本目录，确保相对路径正确
     os.chdir(script_dir)
     print(f"Working directory: {os.getcwd()}")
     
-    # 创建结果目录 - 在脚本目录下创建
+    # 创建结果目录（在脚本目录下）
     results_dir = Path("results")
     results_dir.mkdir(exist_ok=True)
     print(f"Results directory: {results_dir.absolute()}")
     
-    # 查找数据文件
+    # ==================== 数据加载 ====================
+    # 查找数据文件（支持多种路径）
     data_path = Path("../../../../homework/week06/data/q3_marketing.csv").resolve()
     
     if not data_path.exists():
-        # 尝试其他路径
+        # 备用路径（WSL 环境）
         alt_path = Path("/mnt/c/Users/niuyoah/Regression-Analysis-2026/homework/week06/data/q3_marketing.csv")
         if alt_path.exists():
             data_path = alt_path
@@ -355,17 +445,19 @@ def main():
     print("\nFirst 5 rows:")
     print(df.head())
     
-    # 特征和目标列
+    # ==================== 特征选择 ====================
+    # 选择数值型特征作为输入
     feature_cols = ["TV_Budget", "Radio_Budget", "SocialMedia_Budget"]
     target_col = "Sales"
     
-    # 检查列是否存在
+    # 验证列名是否存在
     for col in feature_cols + [target_col]:
         if col not in df.columns:
             print(f"❌ Column '{col}' not found in data!")
             print(f"Available columns: {df.columns.tolist()}")
             return
     
+    # 提取特征和目标变量
     X = df[feature_cols].to_numpy()
     y = df[target_col].to_numpy()
     
@@ -373,18 +465,21 @@ def main():
     print(f"Target shape: {y.shape}")
     print(f"Feature columns: {feature_cols}")
     
-    # ==================== Task 2: AnalyticalOLS 交叉验证 ====================
+    # ==================== Task 2: 交叉验证 ====================
+    # 为 AnalyticalOLS 添加截距列（全1列）
     X_with_intercept = np.column_stack([np.ones(len(X)), X])
     cv_r2, cv_rmse = task_cross_validation(X_with_intercept, y)
     
-    # ==================== Task 3 & 4: 数据划分 ====================
+    # ==================== 数据划分 ====================
     print("\n" + "="*60)
     print("Data Split for Gradient Descent Experiments")
     print("="*60)
     
+    # 第一次划分：60% 训练，40% 临时集
     X_train, X_temp, y_train, y_temp = train_test_split(
         X, y, test_size=0.4, random_state=42
     )
+    # 第二次划分：20% 验证，20% 测试（从临时集中平分）
     X_val, X_test, y_val, y_test = train_test_split(
         X_temp, y_temp, test_size=0.5, random_state=42
     )
@@ -394,20 +489,21 @@ def main():
     print(f"Test set size: {len(X_test)} ({len(X_test)/len(X)*100:.1f}%)")
     
     # ==================== 特征标准化 ====================
+    # 重要：只使用训练集的统计量进行标准化（防止数据泄露）
     print("\n" + "="*60)
     print("Feature Scaling (Preventing Data Leakage)")
     print("="*60)
     
     scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_val_scaled = scaler.transform(X_val)
-    X_test_scaled = scaler.transform(X_test)
+    X_train_scaled = scaler.fit_transform(X_train)  # 在训练集上拟合并转换
+    X_val_scaled = scaler.transform(X_val)          # 只转换，不拟合
+    X_test_scaled = scaler.transform(X_test)        # 只转换，不拟合
     
     print("✓ Scaler fitted ONLY on training data")
     print(f"  - Feature means: {scaler.mean_}")
     print(f"  - Feature stds: {np.sqrt(scaler.var_)}")
     
-    # 添加截距列
+    # 标准化后添加截距列（不对截距列标准化）
     X_train_scaled = np.column_stack([np.ones(len(X_train_scaled)), X_train_scaled])
     X_val_scaled = np.column_stack([np.ones(len(X_val_scaled)), X_val_scaled])
     X_test_scaled = np.column_stack([np.ones(len(X_test_scaled)), X_test_scaled])
@@ -425,6 +521,7 @@ def main():
     print("Final Test Comparison: GradientDescentOLS vs AnalyticalOLS")
     print("="*60)
     
+    # 使用最佳学习率训练梯度下降模型
     print(f"\nTraining GradientDescentOLS with best learning rate={best_lr}...")
     gd_model = GradientDescentOLS(
         learning_rate=best_lr,
@@ -434,9 +531,11 @@ def main():
         batch_fraction=0.2,
     ).fit(X_train_scaled, y_train, seed=42)
     
+    # 训练解析解模型作为对照
     print("Training AnalyticalOLS...")
     analytical_model = AnalyticalOLS().fit(X_train_scaled, y_train)
     
+    # 在测试集上评估
     gd_preds = gd_model.predict(X_test_scaled)
     ols_preds = analytical_model.predict(X_test_scaled)
     
@@ -445,6 +544,7 @@ def main():
     ols_r2 = r2_score(y_test, ols_preds)
     ols_rmse = rmse(y_test, ols_preds)
     
+    # 输出测试结果
     print("\n" + "-"*60)
     print("Test Set Performance:")
     print("-"*60)
@@ -458,7 +558,8 @@ def main():
     # ==================== Task 4: 学习曲线 ====================
     task_plot_learning_curve(X_train_scaled, y_train, results_dir)
     
-    # 保存结果到 CSV
+    # ==================== 保存结果 ====================
+    # 保存测试结果对比表
     results_summary = pd.DataFrame({
         'Model': ['GradientDescentOLS', 'AnalyticalOLS'],
         'Test_R2': [gd_r2, ols_r2],
@@ -473,9 +574,10 @@ def main():
     results_summary.to_csv(save_path, index=False)
     print(f"💾 Results saved to: {save_path.absolute()}")
     
-    # 生成报告
+    # 生成 Markdown 报告
     generate_report(results_dir, gd_r2, gd_rmse, ols_r2, ols_rmse, best_lr, cv_r2, cv_rmse)
     
+    # ==================== 完成 ====================
     # 列出所有生成的文件
     print("\n" + "="*60)
     print("Generated Files:")
