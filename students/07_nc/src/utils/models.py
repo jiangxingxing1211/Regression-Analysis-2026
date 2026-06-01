@@ -132,3 +132,38 @@ class GradientDescentOLS:
 
 
 CustomOLS = AnalyticalOLS
+
+
+class OrdinaryLeastSquares:
+    """Week 12 convenience OLS regressor that adds an intercept internally.
+
+    This class is added on top of the Week 10/11 model utilities.  The earlier
+    AnalyticalOLS and GradientDescentOLS classes are intentionally kept above,
+    so later weeks extend the utils library instead of replacing it.
+    """
+
+    def __init__(self) -> None:
+        self.coef_: np.ndarray | None = None
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> "OrdinaryLeastSquares":
+        X_arr = np.asarray(X, dtype=float)
+        y_arr = np.asarray(y, dtype=float).ravel()
+        if X_arr.ndim == 1:
+            X_arr = X_arr.reshape(-1, 1)
+        if X_arr.shape[0] != y_arr.shape[0]:
+            raise ValueError("X and y must have the same number of rows")
+        X_design = np.column_stack([np.ones(X_arr.shape[0]), X_arr])
+        self.coef_ = np.linalg.lstsq(X_design, y_arr, rcond=None)[0]
+        return self
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        if self.coef_ is None:
+            raise RuntimeError("The model has not been fitted yet")
+        X_arr = np.asarray(X, dtype=float)
+        if X_arr.ndim == 1:
+            X_arr = X_arr.reshape(-1, 1)
+        X_design = np.column_stack([np.ones(X_arr.shape[0]), X_arr])
+        return X_design @ self.coef_
+
+
+LinearRegressionWithIntercept = OrdinaryLeastSquares

@@ -66,3 +66,14 @@ def summarize_regression_metrics(
         "MAE": calculate_mae(y_true, y_pred),
         "MAPE": calculate_mape(y_true, y_pred),
     }
+
+
+def calculate_mse(y_true: np.ndarray | list[float], y_pred: np.ndarray | list[float]) -> float:
+    """Calculate Mean Squared Error; added for later bias-variance experiments."""
+    true, pred = _validate_metric_inputs(y_true, y_pred)
+    return float(np.mean((true - pred) ** 2))
+
+
+def generalization_gap(train_error: float, test_error: float) -> float:
+    """Return test error minus train error, used in Week 12 complexity curves."""
+    return float(test_error - train_error)

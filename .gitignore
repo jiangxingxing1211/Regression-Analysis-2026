@@ -29,8 +29,3 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# VS Code 设置（可选）
-.vscode/
-*.csv
-students/*/data/*.csv
