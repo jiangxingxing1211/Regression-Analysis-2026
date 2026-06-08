@@ -135,7 +135,7 @@ def plot_residuals(y_true, y_pred, save_name="residuals.png"):
     plt.ylabel("Residuals")
     plt.title("Residuals vs Predicted Values")
     
-    res_dir = Path(__file__).parent.parent / "src" / "week11" / "results"
+    res_dir = Path(__file__).parent.parent / "src" / "week13" / "results"/ "figures"
     res_dir.mkdir(exist_ok=True)
     plt.savefig(res_dir / save_name, dpi=150)
     plt.close()
@@ -149,8 +149,8 @@ def plot_qq_residuals(y_true, y_pred, save_name="qq_plot.png"):
     stats.probplot(res, plot=plt)
     plt.title("Residual Q-Q Plot")
     
-    res_dir = Path(__file__).parent.parent / "src" / "week11" / "results"
-    res_dir.mkdir(exist_ok=True)
+    res_dir = Path(__file__).resolve().parents[1] / "week13" / "results" / "figures"
+    res_dir.mkdir(parents=True, exist_ok=True)
     plt.savefig(res_dir / save_name, dpi=150)
     plt.close()
 
@@ -168,7 +168,7 @@ def plot_correlation_matrix(df, save_name="corr_matrix.png"):
     plt.title("Feature Correlation Matrix")
     plt.tight_layout()
     
-    res_dir = Path(__file__).parent.parent / "src" / "week11" / "results"
-    res_dir.mkdir(exist_ok=True)
+    res_dir = Path(__file__).resolve().parents[1] / "week13" / "results" / "figures"
+    res_dir.mkdir(parents=True, exist_ok=True)
     plt.savefig(res_dir / save_name, dpi=150)
     plt.close()
